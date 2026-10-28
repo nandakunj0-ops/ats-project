@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Applicant Tracking System</title>
+<style>
+:root{--bg:#0E1525;--pn:#18233A;--cy:#22D3EE;--co:#FB7185;--gr:#A3E635;--tx:#E5ECF6;--mu:#8FA3BF;--ln:#2B3A57;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Calibri,Arial,sans-serif;font-size:15px}
+h1,h2,h3{font-family:'Trebuchet MS',Arial,sans-serif;margin:0}
+.wrap{max-width:980px;margin:0 auto;padding:16px}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--ln);padding-bottom:12px}
+.brand{font-size:20px;font-weight:700}.brand b{color:var(--cy)}
+.tag{background:var(--pn);border:1px solid var(--cy);color:var(--cy);padding:3px 10px;font-size:12px;font-weight:700;text-transform:uppercase}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0}
+nav button{background:var(--pn);color:var(--mu);border:0;border-top:3px solid var(--ln);padding:9px 14px;cursor:pointer;font-size:14px;font-weight:700}
+nav button.on{color:var(--tx);border-top-color:var(--cy)}
+.card{background:var(--pn);border-top:3px solid var(--cy);padding:16px;margin-bottom:16px}
+.card.co{border-top-color:var(--co)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--pn);padding:14px;border-left:4px solid var(--cy)}.stat:nth-child(even){border-left-color:var(--co)}
+.stat b{display:block;font-size:28px;font-family:'Trebuchet MS',Arial,sans-serif}.stat span{color:var(--mu);font-size:12px;text-transform:uppercase;letter-spacing:1px}
+input,select{background:var(--bg);color:var(--tx);border:1px solid var(--ln);padding:9px;font-size:14px;width:100%;font-family:inherit}
+label{font-size:12px;color:var(--mu);display:block;margin-bottom:3px}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end}
+.btn{background:var(--cy);color:var(--bg);border:0;padding:10px 16px;font-weight:700;cursor:pointer;font-size:14px}.btn.d{background:var(--co)}.btn.s{padding:5px 10px;font-size:12px}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:560px}
+th{text-align:left;color:var(--cy);font-size:12px;text-transform:uppercase;letter-spacing:1px;padding:8px;border-bottom:1px solid var(--ln)}
+td{padding:8px;border-bottom:1px solid var(--ln);vertical-align:middle}
+.bar{height:8px;background:var(--ln);min-width:70px}.bar i{display:block;height:100%;background:var(--cy)}
+.chip{display:inline-block;border:1px solid var(--ln);padding:1px 8px;margin:1px;font-size:12px;color:var(--mu)}
+.chip.m{border-color:var(--gr);color:var(--gr)}
+.pill{padding:2px 9px;font-size:12px;font-weight:700;color:var(--bg);background:var(--cy)}
+.Applied{background:var(--mu)}.Shortlisted{background:var(--gr)}.Interview{background:var(--cy)}.Offered{background:#FBBF24}.Rejected{background:var(--co)}
+.mu{color:var(--mu)}.err{color:var(--co);min-height:20px;font-size:13px}
+#login{max-width:380px;margin:8vh auto}
+</style></head><body><div class="wrap" id="app"></div>
+<script>
+const EDU={Diploma:1,Bachelors:2,Masters:3,PhD:4},STG=['Applied','Shortlisted','Interview','Offered','Rejected'];
+let db,user=null,tab='Dashboard',msg='';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const seed=()=>({nid:20,
+jobs:[{id:1,title:'Python Developer',skills:['Python','Django','SQL','Git'],minExp:2,edu:'Bachelors',open:true},{id:2,title:'Data Analyst',skills:['SQL','Excel','Python','Tableau'],minExp:1,edu:'Bachelors',open:true},{id:3,title:'ML Engineer',skills:['Python','TensorFlow','Statistics','Docker'],minExp:3,edu:'Masters',open:true}],
+cands:[{id:1,name:'Aarav Mehta',email:'aarav@mail.com',skills:['Python','Django','SQL'],exp:1.5,edu:'Bachelors'},{id:2,name:'Riya Kapoor',email:'riya@mail.com',skills:['SQL','Excel','Tableau','Python'],exp:2,edu:'Masters'},{id:3,name:'Karan Singh',email:'karan@mail.com',skills:['Java','Excel'],exp:4,edu:'Diploma'},{id:4,name:'Sneha Rao',email:'sneha@mail.com',skills:['Python','TensorFlow','Statistics','Docker'],exp:3,edu:'Masters'}],
+apps:[]});
+function load(){try{const t=localStorage.getItem('ats_db');if(t){db=JSON.parse(t);return}}catch(e){}db=seed();[[1,1],[2,2],[3,1],[4,3]].forEach(([c,j])=>apply(c,j,true))}
+function save(){try{localStorage.setItem('ats_db',JSON.stringify(db))}catch(e){}}
+function score(c,j){const m=j.skills.filter(s=>c.skills.map(x=>x.toLowerCase()).includes(s.toLowerCase())).length;
+ const sk=m/j.skills.length*100,ex=Math.min(c.exp/j.minExp,1)*100,ed=EDU[c.edu]>=EDU[j.edu]?100:60;
+ return{total:+(0.6*sk+0.25*ex+0.15*ed).toFixed(2),sk:Math.round(sk),ex:Math.round(ex),ed,m}}
+function apply(cid,jid,quiet){if(db.apps.some(a=>a.cid==cid&&a.jid==jid)){if(!quiet)msg='Already applied.';return}
+ const c=db.cands.find(x=>x.id==cid),j=db.jobs.find(x=>x.id==jid),s=score(c,j);
+ db.apps.push({id:db.nid++,cid:+cid,jid:+jid,score:s.total,stage:s.total>=70?'Shortlisted':'Applied',when:'',fb:''});save()}
+const $=id=>document.getElementById(id);
+const pill=s=>`<span class="pill ${s}">${s}</span>`;
+function login(){const u=$('u').value.trim(),p=$('p').value;
+ const U={admin:['admin123','admin'],recruiter:['rec123','recruiter']};
+ if(U[u]&&U[u][0]===p){user={name:u,role:U[u][1]};tab='Dashboard';msg='';draw()}else $('e').textContent='Invalid username or password.'}
+function draw(){const A=$('app');if(!user){A.innerHTML=`<div id="login" class="card"><h2>ATS <span style="color:var(--cy)">Login</span></h2><p class="mu">Applicant Tracking System \u2022 21CSC203P</p>
+ <label>Username</label><input id="u" value="admin"><br><br><label>Password</label><input id="p" type="password" value="admin123"><p class="err" id="e"></p>
+ <button class="btn" onclick="login()">Login</button><p class="mu" style="font-size:12px">Admin: admin / admin123<br>Recruiter: recruiter / rec123</p></div>`;return}
+ const tabs=['Dashboard','Jobs','Candidates','Pipeline','Reports'];
+ A.innerHTML=`<header><div class="brand">ATS <b>Tracker</b></div><div><span class="tag">${user.role}</span> <button class="btn s d" onclick="user=null;draw()">Logout</button></div></header>
+ <nav>${tabs.map(t=>`<button class="${t==tab?'on':''}" onclick="tab='${t}';msg='';draw()">${t}</button>`).join('')}</nav>
+ ${msg?`<p class="err">${esc(msg)}</p>`:''}<div id="v"></div>`;$('v').innerHTML=VIEW[tab]()}
+const VIEW={
+Dashboard(){const cnt=s=>db.apps.filter(a=>a.stage==s).length,top=[...db.apps].sort((a,b)=>b.score-a.score).slice(0,5);
+ return`<div class="grid"><div class="stat"><b>${db.jobs.filter(j=>j.open).length}</b><span>Open jobs</span></div><div class="stat"><b>${db.cands.length}</b><span>Candidates</span></div><div class="stat"><b>${db.apps.length}</b><span>Applications</span></div><div class="stat"><b>${cnt('Shortlisted')+cnt('Interview')}</b><span>In process</span></div></div>
+ <div class="card"><h3>Hiring pipeline</h3><br>${STG.map(s=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="width:90px">${s}</span><div class="bar" style="flex:1"><i style="width:${db.apps.length?cnt(s)/db.apps.length*100:0}%"></i></div><b>${cnt(s)}</b></div>`).join('')}</div>
+ <div class="card co"><h3>Top ranked applications</h3><div class="tw"><table><tr><th>Candidate</th><th>Job</th><th>Score</th><th>Stage</th></tr>${top.map(a=>`<tr><td>${esc(nm(a.cid))}</td><td>${esc(jt(a.jid))}</td><td><b>${a.score}</b></td><td>${pill(a.stage)}</td></tr>`).join('')}</table></div></div>`},
+Jobs(){const adm=user.role=='admin';return`${adm?`<div class="card"><h3>Post a job</h3><br><div class="f"><div><label>Title</label><input id="jt"></div><div><label>Required skills (comma separated)</label><input id="js"></div><div><label>Min experience (yrs)</label><input id="je" type="number" min="0" step="0.5" value="1"></div><div><label>Education</label><select id="jd">${Object.keys(EDU).map(e=>`<option>${e}</option>`).join('')}</select></div><button class="btn" onclick="addJob()">Add job</button></div></div>`:'<p class="mu">Recruiters can view jobs. Only the admin can post or remove them.</p>'}
+ <div class="card co"><h3>Job openings</h3><div class="tw"><table><tr><th>Title</th><th>Skills</th><th>Exp</th><th>Edu</th><th>Status</th><th></th></tr>${db.jobs.map(j=>`<tr><td><b>${esc(j.title)}</b></td><td>${j.skills.map(s=>`<span class="chip">${esc(s)}</span>`).join('')}</td><td>${j.minExp}y</td><td>${j.edu}</td><td>${j.open?pill('Shortlisted').replace('Shortlisted','Open'):pill('Rejected').replace('Rejected','Closed')}</td><td>${adm?`<button class="btn s" onclick="togJob(${j.id})">${j.open?'Close':'Reopen'}</button> <button class="btn s d" onclick="delJob(${j.id})">Delete</button>`:''}</td></tr>`).join('')}</table></div></div>`},
+Candidates(){return`<div class="card"><h3>Add candidate</h3><br><div class="f"><div><label>Name</label><input id="cn"></div><div><label>Email</label><input id="cm"></div><div><label>Skills (comma separated)</label><input id="cs"></div><div><label>Experience (yrs)</label><input id="ce" type="number" min="0" step="0.5" value="0"></div><div><label>Education</label><select id="cd">${Object.keys(EDU).map(e=>`<option>${e}</option>`).join('')}</select></div><button class="btn" onclick="addCand()">Add</button></div></div>
+ <div class="card co"><h3>Candidates</h3><div class="tw"><table><tr><th>Name</th><th>Skills</th><th>Exp</th><th>Edu</th><th>Apply to</th><th></th></tr>${db.cands.map(c=>`<tr><td><b>${esc(c.name)}</b><br><span class="mu" style="font-size:12px">${esc(c.email)}</span></td><td>${c.skills.map(s=>`<span class="chip">${esc(s)}</span>`).join('')}</td><td>${c.exp}y</td><td>${c.edu}</td><td><select id="ap${c.id}">${db.jobs.filter(j=>j.open).map(j=>`<option value="${j.id}">${esc(j.title)}</option>`).join('')}</select></td><td><button class="btn s" onclick="doApply(${c.id})">Apply</button> ${user.role=='admin'?`<button class="btn s d" onclick="delCand(${c.id})">Del</button>`:''}</td></tr>`).join('')}</table></div></div>`},
+Pipeline(){return`<div class="card"><h3>Applications \u2022 auto-scored</h3><p class="mu">Score = 0.6\u00B7Skills + 0.25\u00B7Experience + 0.15\u00B7Education. Score \u2265 70 is auto-shortlisted.</p><div class="tw"><table><tr><th>Candidate</th><th>Job</th><th>Match</th><th>Score</th><th>Stage</th><th>Interview</th><th>Feedback</th></tr>${[...db.apps].sort((a,b)=>b.score-a.score).map(a=>{const c=db.cands.find(x=>x.id==a.cid),j=db.jobs.find(x=>x.id==a.jid);if(!c||!j)return'';const sc=score(c,j);
+ return`<tr><td><b>${esc(c.name)}</b></td><td>${esc(j.title)}</td><td>${j.skills.map(s=>`<span class="chip ${c.skills.map(x=>x.toLowerCase()).includes(s.toLowerCase())?'m':''}">${esc(s)}</span>`).join('')}</td><td><b>${a.score}</b><div class="bar"><i style="width:${a.score}%"></i></div></td><td><select onchange="setStage(${a.id},this.value)">${STG.map(s=>`<option ${s==a.stage?'selected':''}>${s}</option>`).join('')}</select></td><td><input type="date" value="${a.when}" onchange="setF(${a.id},'when',this.value)"></td><td><input value="${esc(a.fb)}" placeholder="Notes" onchange="setF(${a.id},'fb',this.value)"></td></tr>`}).join('')}</table></div></div>`},
+Reports(){const n=db.apps.length||1,avg=(db.apps.reduce((t,a)=>t+a.score,0)/n).toFixed(1);
+ return`<div class="grid"><div class="stat"><b>${avg}</b><span>Average score</span></div><div class="stat"><b>${db.apps.filter(a=>a.stage=='Offered').length}</b><span>Offers made</span></div><div class="stat"><b>${(db.apps.filter(a=>a.stage=='Offered').length/n*100).toFixed(0)}%</b><span>Offer rate</span></div></div>
+ <div class="card"><h3>Applications per job</h3><div class="tw"><table><tr><th>Job</th><th>Applied</th><th>Shortlisted</th><th>Interview</th><th>Offered</th><th>Rejected</th></tr>${db.jobs.map(j=>`<tr><td><b>${esc(j.title)}</b></td>${STG.map(s=>`<td>${db.apps.filter(a=>a.jid==j.id&&a.stage==s).length}</td>`).join('')}</tr>`).join('')}</table></div>
+ ${user.role=='admin'?'<br><button class="btn d" onclick="resetAll()">Reset demo data</button>':''}</div>`}};
+const nm=id=>(db.cands.find(c=>c.id==id)||{name:'?'}).name,jt=id=>(db.jobs.find(j=>j.id==id)||{title:'?'}).title;
+const list=s=>s.split(',').map(x=>x.trim()).filter(Boolean);
+function addJob(){const t=$('jt').value.trim(),s=list($('js').value);if(!t||!s.length){msg='Enter a title and at least one skill.';return draw()}
+ db.jobs.push({id:db.nid++,title:t,skills:s,minExp:Math.max(+$('je').value||1,0.5),edu:$('jd').value,open:true});save();msg='';draw()}
+function togJob(id){const j=db.jobs.find(x=>x.id==id);j.open=!j.open;save();draw()}
+function delJob(id){db.jobs=db.jobs.filter(j=>j.id!=id);db.apps=db.apps.filter(a=>a.jid!=id);save();draw()}
+function addCand(){const n=$('cn').value.trim(),m=$('cm').value.trim(),s=list($('cs').value);if(!n||!m.includes('@')||!s.length){msg='Enter name, a valid email and skills.';return draw()}
+ db.cands.push({id:db.nid++,name:n,email:m,skills:s,exp:Math.max(+$('ce').value||0,0),edu:$('cd').value});save();msg='';draw()}
+function delCand(id){db.cands=db.cands.filter(c=>c.id!=id);db.apps=db.apps.filter(a=>a.cid!=id);save();draw()}
+function doApply(cid){const j=$('ap'+cid).value;if(!j){msg='No open jobs.';return draw()}msg='';apply(cid,j);if(!msg)msg='Applied and scored. See the Pipeline tab.';draw()}
+function setStage(id,v){db.apps.find(a=>a.id==id).stage=v;save()}
+function setF(id,k,v){db.apps.find(a=>a.id==id)[k]=v;save()}
+function resetAll(){try{localStorage.removeItem('ats_db')}catch(e){}load();msg='Demo data reset.';draw()}
+load();draw();
+</script></body></html>
